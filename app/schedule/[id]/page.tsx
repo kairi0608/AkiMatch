@@ -85,8 +85,8 @@ export default function SchedulePage() {
     {submittedName && <div className="answer-complete"><CheckCircle2 /><div><strong>{submittedName}さんの回答を保存しました</strong><span>候補を再計算しました。この画面を次の方へ渡せます。</span></div><Link className="btn compact" href={`/result/${schedule.id}`}>現在の結果</Link></div>}
 
     {!editing ? <section className="answer-start"><div><span className="eyebrow">Your turn</span><h2>あなたの予定を教えてください</h2><p>現在の有効候補だけを表示します。回答は数分で終わります。</p></div><ParticipantForm onStart={startAnswer} /></section> : <section className="answer-editor">
-      <div className="editor-heading"><div><span className="eyebrow">Availability</span><h2>{participantName}さんの予定</h2><p>最初はすべて「空いている」です。予定がある時間だけタップしてください。</p></div><button className="text-button" type="button" onClick={toggleAll}>{viewAll ? <EyeOff size={17} /> : <Eye size={17} />}{viewAll ? "候補だけに戻す" : "すべての日程を見る"}</button></div>
-      <ScheduleGrid schedule={schedule} visibleSlots={visibleSlots} statuses={statuses} onChange={(slot, status) => setStatuses((current) => ({ ...current, [slotKey(slot)]: status }))} />
+      <div className="editor-heading"><div><span className="eyebrow">Availability</span><h2>{participantName}さんの予定</h2><p>最初はすべて「空いている」です。入力する状態を選び、個別または日・週単位で設定してください。</p></div><button className="text-button" type="button" onClick={toggleAll}>{viewAll ? <EyeOff size={17} /> : <Eye size={17} />}{viewAll ? "候補だけに戻す" : "すべての日程を見る"}</button></div>
+      <ScheduleGrid schedule={schedule} visibleSlots={visibleSlots} statuses={statuses} onChange={(slot, status) => setStatuses((current) => ({ ...current, [slotKey(slot)]: status }))} onBulkChange={(slots, status) => setStatuses((current) => ({ ...current, ...Object.fromEntries(slots.map((slot) => [slotKey(slot), status])) }))} />
       <div className="submit-bar"><div><strong>{Object.keys(statuses).length}時間を回答</strong><span>{viewAll ? "全日程を表示中" : "候補時間のみ表示中"}</span></div><button className="btn" type="button" onClick={submitAnswer}>回答を送信 <Send size={18} /></button></div>
     </section>}
   </div>;
