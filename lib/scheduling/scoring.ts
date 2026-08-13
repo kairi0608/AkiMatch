@@ -24,7 +24,7 @@ export function rankCandidates(
   schedule: Schedule,
   participants: Participant[],
   availabilities: Availability[],
-  limit = 12,
+  limit = Number.POSITIVE_INFINITY,
 ): RankedCandidate[] {
   if (participants.length === 0) return [];
 

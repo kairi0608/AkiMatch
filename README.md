@@ -44,15 +44,15 @@ npm run build
 
 ## データ保存
 
-Prototypeではブラウザの`localStorage`に保存します。UIは保存方法を直接参照せず、`ScheduleRepository`を経由しているため、次フェーズでSupabase等へ置き換えられます。端末をまたいだ共有・リアルタイム同期はまだ行いません。
+Neon PostgreSQLへ保存し、共有URLを別端末から開いても同じ日程と回答を読み込めます。旧バージョンでブラウザに保存した日程は「過去の日程」を初めて開いたときに共有DBへ移行します。
 
 ## Vercel
 
-GitHubリポジトリをVercelへ接続し、Framework PresetをNext.jsにしてデプロイできます。Prototypeの動作に必須の環境変数はありません。共有カードURLのビルド時フォールバックが必要な場合のみ、任意で`NEXT_PUBLIC_SITE_URL`に公開URLを設定できます。
+GitHubリポジトリをVercelへ接続し、Framework PresetをNext.jsにしてデプロイできます。Vercel MarketplaceからNeonを接続し、NeonのSQL Editorで`neon/schema.sql`を実行してください。接続時にVercelへ`DATABASE_URL`が自動設定されます。手動接続の場合は、Neonの接続文字列を`DATABASE_URL`へ設定します。接続情報はサーバーAPIだけで利用し、ブラウザへ公開しません。
 
 ## 次フェーズ
 
-- Supabaseによる複数端末共有とリアルタイム同期
+- リアルタイム同期
 - 回答編集、主催者管理、締切
 - 自然言語から予定へ変換するAI実装とUndo
 - Google Calendar / Outlook Calendar連携

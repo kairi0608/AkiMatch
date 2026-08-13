@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { addDays, format, isWithinInterval, parseISO } from "date-fns";
+import { format, isWithinInterval, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import {
   CalendarDays,
@@ -58,10 +58,17 @@ export function ScheduleGrid({
   const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus>(
     AVAILABILITY_STATUS.UNAVAILABLE,
   );
+  const [bulkStartDate, setBulkStartDate] = useState(dates[0] ?? "");
+  const [bulkEndDate, setBulkEndDate] = useState(dates[0] ?? "");
+  const [bulkStartHour, setBulkStartHour] = useState(schedule.dailyStartHour);
+  const [bulkEndHour, setBulkEndHour] = useState(schedule.dailyEndHour);
+  const [bulkMessage, setBulkMessage] = useState("");
 
   useEffect(() => {
     setDesktopPage(0);
     setMobileIndex(0);
+    setBulkStartDate(dates[0] ?? "");
+    setBulkEndDate(dates[dates.length - 1] ?? "");
   }, [dates.join("|")]);
 
   if (!dates.length) {
@@ -82,12 +89,25 @@ export function ScheduleGrid({
   const slotsForDay = (date: string) =>
     visibleSlots.filter((slot) => slot.date === date);
 
-  const slotsForWeek = (startDate: string) => {
-    const start = parseISO(startDate);
-    const end = addDays(start, 6);
-    return visibleSlots.filter((slot) =>
-      isWithinInterval(parseISO(slot.date), { start, end }),
+  const applyCustomRange = () => {
+    if (!bulkStartDate || !bulkEndDate || bulkStartDate > bulkEndDate) {
+      setBulkMessage("開始日と終了日を確認してください。");
+      return;
+    }
+    if (bulkStartHour >= bulkEndHour) {
+      setBulkMessage("開始時刻より後の終了時刻を選んでください。");
+      return;
+    }
+    const start = parseISO(bulkStartDate);
+    const end = parseISO(bulkEndDate);
+    const slots = visibleSlots.filter(
+      (slot) =>
+        isWithinInterval(parseISO(slot.date), { start, end }) &&
+        slot.hour >= bulkStartHour &&
+        slot.hour < bulkEndHour,
     );
+    onBulkChange(slots, selectedStatus);
+    setBulkMessage(`${slots.length}時間を「${STATUS_META[selectedStatus].label}」に設定しました。`);
   };
 
   const renderSlot = (slot: TimeSlotType) => {
@@ -110,13 +130,6 @@ export function ScheduleGrid({
   };
 
   const selectedLabel = STATUS_META[selectedStatus].label;
-  const desktopWeekEnd = formatDate(
-    format(addDays(parseISO(desktopDates[0]), 6), "yyyy-MM-dd"),
-  );
-  const mobileWeekEnd = formatDate(
-    format(addDays(parseISO(currentDate), 6), "yyyy-MM-dd"),
-  );
-
   return (
     <div className="schedule-grid-wrap">
       <div className="status-picker-panel">
@@ -141,6 +154,24 @@ export function ScheduleGrid({
         </div>
       </div>
 
+      <div className="custom-bulk-panel">
+        <div className="custom-bulk-heading">
+          <span><CalendarRange size={18} /></span>
+          <div>
+            <strong>期間と時間帯を指定して一括設定</strong>
+            <small>例：8月20日〜8月25日の9:00〜12:00を参加できない</small>
+          </div>
+        </div>
+        <div className="custom-bulk-fields">
+          <label>開始日<input type="date" min={dates[0]} max={dates[dates.length - 1]} value={bulkStartDate} onChange={(event) => setBulkStartDate(event.target.value)} /></label>
+          <label>終了日<input type="date" min={dates[0]} max={dates[dates.length - 1]} value={bulkEndDate} onChange={(event) => setBulkEndDate(event.target.value)} /></label>
+          <label>開始時刻<select value={bulkStartHour} onChange={(event) => setBulkStartHour(Number(event.target.value))}>{hours.map((hour) => <option value={hour} key={hour}>{String(hour).padStart(2, "0")}:00</option>)}</select></label>
+          <label>終了時刻<select value={bulkEndHour} onChange={(event) => setBulkEndHour(Number(event.target.value))}>{Array.from({ length: schedule.dailyEndHour - schedule.dailyStartHour }, (_, index) => schedule.dailyStartHour + index + 1).map((hour) => <option value={hour} key={hour}>{String(hour).padStart(2, "0")}:00</option>)}</select></label>
+          <button className="bulk-apply-button" type="button" onClick={applyCustomRange}>{selectedLabel}に設定</button>
+        </div>
+        {bulkMessage && <p className="bulk-message" role="status">{bulkMessage}</p>}
+      </div>
+
       <div className="grid-toolbar">
         <p>
           <strong>現在の入力：{selectedLabel}</strong>
@@ -160,16 +191,7 @@ export function ScheduleGrid({
             onPrevious={() => setDesktopPage((page) => page - 1)}
             onNext={() => setDesktopPage((page) => page + 1)}
           />
-          <button
-            className="bulk-button week"
-            type="button"
-            onClick={() =>
-              onBulkChange(slotsForWeek(desktopDates[0]), selectedStatus)
-            }
-          >
-            <CalendarRange size={17} />
-            {formatDate(desktopDates[0])}〜{desktopWeekEnd}を一括で{selectedLabel}
-          </button>
+          <span className="period-note">7日ずつ表示しています</span>
         </div>
         <div
           className="schedule-table-scroll"
@@ -228,13 +250,6 @@ export function ScheduleGrid({
             onClick={() => onBulkChange(slotsForDay(currentDate), selectedStatus)}
           >
             <CalendarDays size={16} /> この日をすべて{selectedLabel}
-          </button>
-          <button
-            className="bulk-button week"
-            type="button"
-            onClick={() => onBulkChange(slotsForWeek(currentDate), selectedStatus)}
-          >
-            <CalendarRange size={16} /> {formatDate(currentDate)}〜{mobileWeekEnd}
           </button>
         </div>
         <div className="mobile-slot-list">

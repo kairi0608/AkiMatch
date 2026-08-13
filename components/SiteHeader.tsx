@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { CalendarCheck2 } from "lucide-react";
 import { APP_CONFIG } from "@/lib/config";
 
-const navigation = [["/create", "日程を作成"], ["/", "使い方"]] as const;
+const navigation = [["/create", "日程を作成"], ["/schedules", "過去の日程"], ["/", "使い方"]] as const;
 
 export function SiteHeader() {
   const pathname = usePathname();

@@ -8,7 +8,6 @@ import {
 import type { Participant } from "@/types/participant";
 import type { Schedule } from "@/types/schedule";
 import { generateTimeSlots, slotKey } from "@/lib/scheduling/time-slots";
-import type { ScheduleRepository } from "./repository";
 
 interface PrototypeData {
   schedules: Schedule[];
@@ -32,7 +31,7 @@ function makeId(prefix: string) {
   return `${prefix}-${value}`;
 }
 
-export class PrototypeScheduleRepository implements ScheduleRepository {
+export class PrototypeScheduleRepository {
   private read(): PrototypeData {
     if (typeof window === "undefined") return emptyData();
     const raw = window.localStorage.getItem(STORAGE_KEY);

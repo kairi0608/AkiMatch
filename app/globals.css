@@ -161,6 +161,19 @@ input::placeholder { color: #9aa7a3; }
 .date-navigator button:disabled { opacity: .3; cursor: not-allowed; }
 .period-controls { display: grid; grid-template-columns: minmax(340px, 1fr) auto; gap: 10px; margin-bottom: 12px; }
 .period-controls .date-navigator { margin-bottom: 0; }
+.period-note { min-height: 45px; padding: 0 14px; color: var(--muted); background: #f5f9f8; border-radius: 11px; display: grid; place-items: center; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.custom-bulk-panel { padding: 17px; margin-bottom: 14px; background: white; border: 1px solid var(--line); border-radius: 15px; }
+.custom-bulk-heading { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 14px; }
+.custom-bulk-heading > span { width: 35px; height: 35px; color: var(--teal-dark); background: var(--teal-soft); border-radius: 10px; display: grid; place-items: center; flex: none; }
+.custom-bulk-heading > div { display: flex; flex-direction: column; gap: 3px; }
+.custom-bulk-heading strong { font-size: 13px; }
+.custom-bulk-heading small { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.custom-bulk-fields { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)) auto; gap: 8px; align-items: end; }
+.custom-bulk-fields label { gap: 5px; color: var(--muted); font-size: 10px; }
+.custom-bulk-fields input, .custom-bulk-fields select { min-height: 42px; padding: 0 9px; font-size: 12px; }
+.bulk-apply-button { min-height: 42px; padding: 0 14px; border: 0; border-radius: 10px; color: white; background: var(--teal); font-size: 11px; font-weight: 900; cursor: pointer; white-space: nowrap; }
+.bulk-apply-button:hover { background: var(--teal-dark); }
+.bulk-message { margin: 10px 0 0; padding: 8px 10px; color: var(--teal-dark); background: var(--teal-soft); border-radius: 8px; font-size: 11px; font-weight: 800; }
 .bulk-button { min-height: 42px; padding: 7px 12px; border: 1px solid #c8dbd6; border-radius: 10px; color: var(--teal-dark); background: white; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 11px; font-weight: 900; line-height: 1.35; cursor: pointer; }
 .bulk-button:hover { border-color: var(--teal); background: var(--teal-soft); }
 .bulk-button.week { color: #765116; border-color: #ead7ab; background: #fffaf0; }
@@ -209,6 +222,8 @@ input::placeholder { color: #9aa7a3; }
 .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 18px; }
 .section-head h2 { margin: 8px 0 0; font-size: 28px; }
 .section-head > small { color: var(--muted); }
+.section-head-actions { display: flex; align-items: center; gap: 12px; }
+.section-head-actions > small { color: var(--muted); }
 .ranking-list { display: flex; flex-direction: column; gap: 12px; }
 .ranking-card { background: white; border: 1px solid var(--line); border-radius: 17px; overflow: hidden; }
 .ranking-card.top { border: 2px solid #64ad9e; box-shadow: 0 12px 35px rgba(24,72,62,.09); }
@@ -239,6 +254,19 @@ input::placeholder { color: #9aa7a3; }
 .empty-state strong { color: var(--ink); font-size: 20px; }
 .empty-state p { margin: 0 0 10px; }
 .page-empty { min-height: 620px; }
+.history-shell { padding: 65px 0 110px; max-width: 920px; margin: 0 auto; }
+.history-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 25px; margin-bottom: 35px; }
+.history-heading h1 { margin: 12px 0 8px; font-size: clamp(38px, 5vw, 54px); letter-spacing: -.05em; }
+.history-heading p { margin: 0; color: var(--muted); }
+.history-list { display: flex; flex-direction: column; gap: 12px; }
+.history-card { padding: 20px; background: white; border: 1px solid var(--line); border-radius: 17px; display: grid; grid-template-columns: 68px 1fr auto; gap: 18px; align-items: center; }
+.history-date { width: 62px; height: 62px; color: var(--teal-dark); background: var(--teal-soft); border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.history-date strong { font-size: 21px; }
+.history-date span { font-size: 10px; }
+.history-details h2 { margin: 0 0 8px; font-size: 19px; }
+.history-details p { margin: 3px 0; color: var(--muted); display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.history-actions { display: flex; gap: 7px; }
+.history-empty > svg { width: 44px; height: 44px; color: var(--teal); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 900px) {
@@ -256,6 +284,8 @@ input::placeholder { color: #9aa7a3; }
   .answer-start { grid-template-columns: 1fr; gap: 25px; }
   .status-picker-panel { align-items: stretch; flex-direction: column; }
   .status-picker { width: 100%; }
+  .custom-bulk-fields { grid-template-columns: 1fr 1fr; }
+  .bulk-apply-button { grid-column: 1 / -1; }
   .scroll-guide { display: none; }
   .desktop-schedule { display: none; }
   .mobile-schedule { display: block; }
@@ -318,10 +348,23 @@ input::placeholder { color: #9aa7a3; }
   .response-count { grid-column: 1 / -1; padding: 13px 0 0; border-left: 0; border-top: 1px solid rgba(255,255,255,.2); display: flex; justify-content: flex-end; }
   .response-count span { text-align: left; }
   .section-head { align-items: flex-start; flex-direction: column; }
+  .section-head-actions { width: 100%; align-items: flex-start; flex-direction: column; }
+  .section-head-actions .btn { width: 100%; }
   .ranking-card summary { grid-template-columns: 46px 1fr 25px; gap: 10px; padding: 13px; }
   .rank-number { height: 52px; }
   .rank-datetime strong { font-size: 17px; }
   .rank-status { grid-column: 2 / 3; grid-row: 2; min-width: 0; text-align: left; }
   .rank-chevron { grid-column: 3; grid-row: 1 / 3; }
   .participant-breakdown { padding: 0 13px 13px; grid-template-columns: 1fr; }
+  .custom-bulk-fields { grid-template-columns: 1fr; }
+  .bulk-apply-button { grid-column: auto; min-height: 48px; }
+  .period-controls { grid-template-columns: 1fr; }
+  .period-note { display: none; }
+  .history-shell { padding: 42px 0 80px; }
+  .history-heading { align-items: stretch; flex-direction: column; }
+  .history-heading .btn { width: 100%; }
+  .history-card { grid-template-columns: 58px 1fr; padding: 15px; }
+  .history-date { width: 55px; height: 55px; }
+  .history-actions { grid-column: 1 / -1; }
+  .history-actions .btn { flex: 1; }
 }
