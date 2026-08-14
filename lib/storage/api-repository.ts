@@ -71,6 +71,28 @@ function readLegacy(): LegacyData | null {
   }
 }
 
+function removeLegacySchedule(scheduleId: string) {
+  const legacy = readLegacy();
+  if (!legacy) return;
+  const participantIds = new Set(
+    legacy.participants
+      .filter((participant) => participant.scheduleId === scheduleId)
+      .map((participant) => participant.id),
+  );
+  window.localStorage.setItem(
+    LEGACY_STORAGE_KEY,
+    JSON.stringify({
+      schedules: legacy.schedules.filter((schedule) => schedule.id !== scheduleId),
+      participants: legacy.participants.filter(
+        (participant) => participant.scheduleId !== scheduleId,
+      ),
+      availabilities: legacy.availabilities.filter(
+        (availability) => !participantIds.has(availability.participantId),
+      ),
+    } satisfies LegacyData),
+  );
+}
+
 export const scheduleRepository = {
   async createSchedule(
     input: Omit<Schedule, "id" | "createdAt">,
@@ -112,6 +134,17 @@ export const scheduleRepository = {
       `/api/schedules?ownerToken=${encodeURIComponent(ownerToken())}`,
     );
     return result.schedules;
+  },
+
+  async deleteSchedule(scheduleId: string) {
+    await json<{ deleted: true }>(
+      `/api/schedules/${encodeURIComponent(scheduleId)}`,
+      {
+        method: "DELETE",
+        body: JSON.stringify({ ownerToken: ownerToken() }),
+      },
+    );
+    removeLegacySchedule(scheduleId);
   },
 
   async addParticipantResponse(

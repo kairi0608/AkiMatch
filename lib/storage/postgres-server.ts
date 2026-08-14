@@ -104,6 +104,17 @@ export async function listRemoteSchedules(ownerToken: string) {
   return (rows as ScheduleRow[]).map(toSchedule);
 }
 
+export async function deleteRemoteSchedule(id: string, ownerToken: string) {
+  const sql = database();
+  const rows = await sql`
+    delete from schedules
+    where id = ${id} and owner_token = ${ownerToken}
+    returning id
+  `;
+  // participants と availabilities は外部キーの on delete cascade で削除される。
+  return rows.length > 0;
+}
+
 export async function getRemoteScheduleBundle(id: string) {
   const sql = database();
   const [scheduleRows, participantRows, availabilityRows] = await sql.transaction(

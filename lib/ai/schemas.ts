@@ -24,6 +24,36 @@ export const aiAvailabilityRequestSchema = z.object({
   "終了時刻は開始時刻より後にしてください。",
 );
 
+/**
+ * OpenAIへ渡すStructured Output用schema。
+ *
+ * モデル側のJSON Schemaは、fine-tuned modelを含む対応モデル間で共通して
+ * 利用できる制約だけに留める。文字数・件数・値域は、受信後に
+ * aiAvailabilityOutputSchemaで必ず再検証する。
+ */
+export const openAIAvailabilityOutputSchema = z.object({
+  availabilityRules: z.array(z.object({
+    id: z.string(),
+    type: z.enum(["WEEKDAY", "DATE", "DATE_RANGE"]),
+    weekdays: z.array(z.number()),
+    startDate: z.string().nullable(),
+    endDate: z.string().nullable(),
+    startHour: z.number(),
+    endHour: z.number(),
+    status: z.enum(["AVAILABLE", "DIFFICULT", "UNAVAILABLE"]),
+    confidence: z.enum(["HIGH", "MEDIUM", "LOW"]),
+    reason: z.string(),
+  }).strict()),
+  preferences: z.array(z.object({
+    type: z.enum(["TIME_OF_DAY", "WEEKDAY", "GENERAL"]),
+    value: z.string(),
+    weight: z.number(),
+    reason: z.string(),
+  }).strict()),
+  summary: z.string(),
+}).strict();
+
+/** AIレスポンスをアプリへ渡す前に適用する、厳格なローカル検証schema。 */
 export const aiAvailabilityOutputSchema = z.object({
   availabilityRules: z.array(z.object({
     id: z.string().min(1).max(80),

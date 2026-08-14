@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { zodTextFormat } from "openai/helpers/zod";
 import { AVAILABILITY_SOURCE, AVAILABILITY_STATUS } from "../../types/availability";
 import type { Schedule } from "../../types/schedule";
 import { applyAvailabilityRules } from "../scheduling/availability-rules";
@@ -6,9 +7,11 @@ import { generateTimeSlots, slotKey } from "../scheduling/time-slots";
 import {
   aiAvailabilityOutputSchema,
   normalizeAIAvailabilityResponse,
+  openAIAvailabilityOutputSchema,
 } from "./schemas";
 import { AVAILABILITY_SYSTEM_PROMPT } from "./prompts";
-import { isAIConfigured } from "./server-config";
+import { getOpenAIAPIKey, isAIConfigured } from "./server-config";
+import { classifyAIAvailabilityError, getSafeAIErrorLog } from "./error-handling";
 
 const schedule: Schedule = {
   id: "ai-test",
@@ -138,6 +141,36 @@ describe("AI設定とプロンプト", () => {
   it("APIキー未設定を検出し、通常入力と独立させる", () => {
     expect(isAIConfigured("")).toBe(false);
     expect(isAIConfigured("test-key")).toBe(true);
+    expect(getOpenAIAPIKey("  test-key\n")).toBe("test-key");
+  });
+
+  it("モデル共通のStructured Output schemaをAPI送信前に生成できる", () => {
+    const format = zodTextFormat(openAIAvailabilityOutputSchema, "availability_plan");
+    expect(format.type).toBe("json_schema");
+    expect(format.strict).toBe(true);
+    expect(JSON.stringify(format.schema)).not.toMatch(
+      /minLength|maxLength|minimum|maximum|minItems|maxItems/,
+    );
+  });
+
+  it("OpenAIの認証・利用枠エラーを利用者が修正できる案内へ変換する", () => {
+    expect(classifyAIAvailabilityError({ status: 401 }).code).toBe("AI_AUTH_ERROR");
+    expect(classifyAIAvailabilityError({ status: 429, code: "insufficient_quota" })).toMatchObject({
+      status: 429,
+      code: "AI_QUOTA_EXCEEDED",
+    });
+  });
+
+  it("サーバーログへAPIキーや入力本文を追加せず、例外情報を制限する", () => {
+    const log = getSafeAIErrorLog({
+      name: "BadRequestError",
+      status: 400,
+      code: "invalid_request_error",
+      message: "x".repeat(700),
+      apiKey: "secret",
+    });
+    expect(log.message).toHaveLength(500);
+    expect(log).not.toHaveProperty("apiKey");
   });
 
   it("曖昧表現とPreference分離をSystem Promptへ明示する", () => {

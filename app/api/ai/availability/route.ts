@@ -5,12 +5,17 @@ import {
   aiAvailabilityOutputSchema,
   aiAvailabilityRequestSchema,
   normalizeAIAvailabilityResponse,
+  openAIAvailabilityOutputSchema,
 } from "@/lib/ai/schemas";
 import {
   AVAILABILITY_SYSTEM_PROMPT,
   buildAvailabilityUserPrompt,
 } from "@/lib/ai/prompts";
-import { getOpenAIModel, isAIConfigured } from "@/lib/ai/server-config";
+import { getOpenAIAPIKey, getOpenAIModel } from "@/lib/ai/server-config";
+import {
+  classifyAIAvailabilityError,
+  getSafeAIErrorLog,
+} from "@/lib/ai/error-handling";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,7 +31,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!isAIConfigured()) {
+  const apiKey = getOpenAIAPIKey();
+  if (!apiKey) {
     return NextResponse.json(
       { error: "現在AI入力機能は設定されていません。通常入力をご利用ください。", code: "AI_NOT_CONFIGURED" },
       { status: 503 },
@@ -35,7 +41,7 @@ export async function POST(request: Request) {
 
   try {
     const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey,
       timeout: 25_000,
       maxRetries: 1,
     });
@@ -46,7 +52,7 @@ export async function POST(request: Request) {
         { role: "user", content: buildAvailabilityUserPrompt(parsedRequest.data) },
       ],
       text: {
-        format: zodTextFormat(aiAvailabilityOutputSchema, "availability_plan"),
+        format: zodTextFormat(openAIAvailabilityOutputSchema, "availability_plan"),
       },
     });
 
@@ -57,23 +63,34 @@ export async function POST(request: Request) {
       );
     }
 
+    const validatedOutput = aiAvailabilityOutputSchema.safeParse(response.output_parsed);
+    if (!validatedOutput.success) {
+      console.error("akimatch_ai_availability_invalid_response", {
+        issues: validatedOutput.error.issues.map(({ code, path }) => ({ code, path })),
+      });
+      return NextResponse.json(
+        { error: "AIが予定を安全な形式で整理できませんでした。表現を少し変えて再度お試しください。", code: "INVALID_AI_RESPONSE" },
+        { status: 502 },
+      );
+    }
+
     const result = normalizeAIAvailabilityResponse(
-      response.output_parsed,
+      validatedOutput.data,
       parsedRequest.data.schedule,
     );
     return NextResponse.json(result);
   } catch (error) {
-    const isTimeout =
-      error instanceof Error &&
-      (error.name.includes("Timeout") || error.message.toLowerCase().includes("timeout"));
+    const failure = classifyAIAvailabilityError(error);
+    console.error("akimatch_ai_availability_failed", {
+      model: getOpenAIModel(),
+      ...getSafeAIErrorLog(error),
+    });
     return NextResponse.json(
       {
-        error: isTimeout
-          ? "AIの応答に時間がかかっています。しばらくしてから再度お試しください。"
-          : "AI入力を処理できませんでした。現在の予定は変更されていません。",
-        code: isTimeout ? "AI_TIMEOUT" : "AI_REQUEST_FAILED",
+        error: failure.message,
+        code: failure.code,
       },
-      { status: isTimeout ? 504 : 502 },
+      { status: failure.status },
     );
   }
 }
