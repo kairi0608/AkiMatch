@@ -3,17 +3,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { CheckCircle2, Clipboard, Send, Trophy } from "lucide-react";
+import { CheckCircle2, Clipboard, Send, Trophy, Undo2 } from "lucide-react";
+import type { AvailabilityRule } from "@/lib/ai/types";
 import { AVAILABILITY_SOURCE, AVAILABILITY_STATUS, type Availability, type AvailabilityStatus } from "@/types/availability";
 import type { Participant } from "@/types/participant";
 import type { Schedule } from "@/types/schedule";
 import { selectCandidates } from "@/lib/scheduling/candidate-filter";
-import { generateTimeSlots, slotKey } from "@/lib/scheduling/time-slots";
+import { generateDates, generateTimeSlots, slotKey } from "@/lib/scheduling/time-slots";
+import { applyAvailabilityRule, copyDayToSameWeekday } from "@/lib/scheduling/availability-rules";
 import { scheduleRepository } from "@/lib/storage/api-repository";
 import { CandidateBanner } from "@/components/schedule/CandidateBanner";
 import { CandidateSummary } from "@/components/schedule/CandidateSummary";
 import { ParticipantForm } from "@/components/schedule/ParticipantForm";
 import { ScheduleGrid } from "@/components/schedule/ScheduleGrid";
+import { BulkAvailabilityEditor } from "@/components/schedule/BulkAvailabilityEditor";
+import { DayAvailabilityEditor } from "@/components/schedule/DayAvailabilityEditor";
+import { MonthlyCalendar } from "@/components/schedule/MonthlyCalendar";
+import { ViewModeToggle, type AvailabilityViewMode } from "@/components/schedule/ViewModeToggle";
 
 export default function SchedulePage() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +34,9 @@ export default function SchedulePage() {
   const [copied, setCopied] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<AvailabilityViewMode>("CANDIDATES");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [undoSnapshot, setUndoSnapshot] = useState<{ statuses: Record<string, AvailabilityStatus>; label: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoadError("");
@@ -47,14 +56,41 @@ export default function SchedulePage() {
 
   const selection = useMemo(() => schedule ? selectCandidates(schedule, participants, availabilities) : null, [schedule, participants, availabilities]);
   const allSlots = useMemo(() => schedule ? generateTimeSlots(schedule) : [], [schedule]);
-  const visibleSlots = allSlots;
+  const allDates = useMemo(() => schedule ? generateDates(schedule) : [], [schedule]);
+  const candidateKeys = useMemo(() => new Set((selection?.slots ?? []).map(slotKey)), [selection]);
+  const visibleSlots = selection?.slots ?? [];
+  const selectedDaySlots = useMemo(() => allSlots.filter((slot) => slot.date === selectedDate), [allSlots, selectedDate]);
 
   const startAnswer = (name: string) => {
     if (!selection) return;
     setParticipantName(name);
     setStatuses(Object.fromEntries(allSlots.map((slot) => [slotKey(slot), AVAILABILITY_STATUS.AVAILABLE])));
     setSubmittedName("");
+    setViewMode("CANDIDATES");
+    setSelectedDate(allDates[0] ?? "");
+    setUndoSnapshot(null);
     setEditing(true);
+  };
+
+  const applyBulkSlots = (slots: typeof allSlots, status: AvailabilityStatus, label: string) => {
+    setUndoSnapshot({ statuses: { ...statuses }, label });
+    setStatuses((current) => ({ ...current, ...Object.fromEntries(slots.map((slot) => [slotKey(slot), status])) }));
+  };
+
+  const applyRule = (rule: AvailabilityRule, label: string) => {
+    setUndoSnapshot({ statuses: { ...statuses }, label });
+    setStatuses((current) => applyAvailabilityRule(current, allSlots, rule));
+  };
+
+  const copySameWeekday = (date: string) => {
+    setUndoSnapshot({ statuses: { ...statuses }, label: "同じ曜日へのコピー" });
+    setStatuses((current) => copyDayToSameWeekday(current, allSlots, date));
+  };
+
+  const undoBulk = () => {
+    if (!undoSnapshot) return;
+    setStatuses(undoSnapshot.statuses);
+    setUndoSnapshot(null);
   };
 
   const submitAnswer = async () => {
@@ -93,11 +129,18 @@ export default function SchedulePage() {
 
     {submittedName && <div className="answer-complete"><CheckCircle2 /><div><strong>{submittedName}さんの回答を保存しました</strong><span>候補を再計算しました。この画面を次の方へ渡せます。</span></div><Link className="btn compact" href={`/result/${schedule.id}`}>現在の結果</Link></div>}
 
-    {!editing ? <section className="answer-start"><div><span className="eyebrow">Your turn</span><h2>あなたの予定を教えてください</h2><p>選択された期間と時間帯をすべて表示します。まとめて設定してから個別に調整できます。</p></div><ParticipantForm onStart={startAnswer} /></section> : <section className="answer-editor">
-      <div className="editor-heading"><div><span className="eyebrow">Availability</span><h2>{participantName}さんの予定</h2><p>期間内のすべての時間を表示しています。入力する状態を選び、個別または期間・時間帯を指定して一括設定してください。</p></div></div>
-      <ScheduleGrid schedule={schedule} visibleSlots={visibleSlots} statuses={statuses} onChange={(slot, status) => setStatuses((current) => ({ ...current, [slotKey(slot)]: status }))} onBulkChange={(slots, status) => setStatuses((current) => ({ ...current, ...Object.fromEntries(slots.map((slot) => [slotKey(slot), status])) }))} />
+    {!editing ? <section className="answer-start"><div><span className="eyebrow">Your turn</span><h2>あなたの予定を教えてください</h2><p>最初は候補だけを表示します。全日程カレンダーや曜日・期間の一括入力も利用できます。</p></div><ParticipantForm onStart={startAnswer} /></section> : <section className="answer-editor">
+      <div className="editor-heading"><div><span className="eyebrow">Availability</span><h2>{participantName}さんの予定</h2><p>すべて「空いている」で開始します。難しい・参加できない時間だけを変更すると、少ない操作で回答できます。</p></div><ViewModeToggle value={viewMode} onChange={setViewMode} /></div>
+      <div className="schedule-grid-wrap availability-workspace">
+        {viewMode === "CANDIDATES" ? <ScheduleGrid schedule={schedule} visibleSlots={visibleSlots} statuses={statuses} onChange={(slot, status) => setStatuses((current) => ({ ...current, [slotKey(slot)]: status }))} onBulkChange={applyBulkSlots} /> : <>
+          <MonthlyCalendar dates={allDates} slots={allSlots} statuses={statuses} candidateKeys={candidateKeys} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+          {selectedDate && <DayAvailabilityEditor date={selectedDate} slots={selectedDaySlots} statuses={statuses} onChange={(slot, status) => setStatuses((current) => ({ ...current, [slotKey(slot)]: status }))} onBulkChange={applyBulkSlots} onCopySameWeekday={copySameWeekday} />}
+        </>}
+        <BulkAvailabilityEditor schedule={schedule} dates={allDates} onApply={applyRule} />
+        {undoSnapshot && <div className="undo-bar" role="status"><span>「{undoSnapshot.label}」を反映しました</span><button type="button" onClick={undoBulk}><Undo2 size={16} />元に戻す</button></div>}
+      </div>
       {loadError && <p className="form-error" role="alert">{loadError}</p>}
-      <div className="submit-bar"><div><strong>{Object.keys(statuses).length}時間を回答</strong><span>選択期間の全時間を表示中</span></div><button className="btn" type="button" disabled={saving} onClick={submitAnswer}>{saving ? "保存中…" : "回答を送信"} <Send size={18} /></button></div>
+      <div className="submit-bar"><div><strong>{Object.keys(statuses).length}時間を回答</strong><span>期間内の全時間を保存します</span></div><button className="btn" type="button" disabled={saving} onClick={submitAnswer}>{saving ? "保存中…" : "回答を送信"} <Send size={18} /></button></div>
     </section>}
   </div>;
 }
