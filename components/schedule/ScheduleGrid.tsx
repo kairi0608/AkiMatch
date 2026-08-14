@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import {
   AVAILABILITY_STATUS,
+  type AvailabilitySource,
   type AvailabilityStatus,
 } from "@/types/availability";
 import type { Schedule, TimeSlot as TimeSlotType } from "@/types/schedule";
@@ -34,12 +35,14 @@ export function ScheduleGrid({
   schedule,
   visibleSlots,
   statuses,
+  sources = {},
   onChange,
   onBulkChange,
 }: {
   schedule: Schedule;
   visibleSlots: TimeSlotType[];
   statuses: Record<string, AvailabilityStatus>;
+  sources?: Record<string, AvailabilitySource>;
   onChange: (slot: TimeSlotType, status: AvailabilityStatus) => void;
   onBulkChange: (slots: TimeSlotType[], status: AvailabilityStatus, label: string) => void;
 }) {
@@ -95,6 +98,7 @@ export function ScheduleGrid({
         slot={slot}
         status={statuses[key] ?? AVAILABILITY_STATUS.AVAILABLE}
         selectedStatus={selectedStatus}
+        source={sources[key]}
         onChange={(status) => onChange(slot, status)}
       />
     );

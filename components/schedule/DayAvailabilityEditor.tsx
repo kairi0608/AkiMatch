@@ -5,6 +5,7 @@ import { ja } from "date-fns/locale";
 import { Check, Copy, Minus, X } from "lucide-react";
 import {
   AVAILABILITY_STATUS,
+  type AvailabilitySource,
   type AvailabilityStatus,
 } from "@/types/availability";
 import type { TimeSlot as TimeSlotType } from "@/types/schedule";
@@ -23,6 +24,8 @@ export function DayAvailabilityEditor({
   date,
   slots,
   statuses,
+  sources = {},
+  readOnly = false,
   onChange,
   onBulkChange,
   onCopySameWeekday,
@@ -30,9 +33,11 @@ export function DayAvailabilityEditor({
   date: string;
   slots: TimeSlotType[];
   statuses: Record<string, AvailabilityStatus>;
-  onChange: (slot: TimeSlotType, status: AvailabilityStatus) => void;
-  onBulkChange: (slots: TimeSlotType[], status: AvailabilityStatus, label: string) => void;
-  onCopySameWeekday: (date: string) => void;
+  sources?: Record<string, AvailabilitySource>;
+  readOnly?: boolean;
+  onChange?: (slot: TimeSlotType, status: AvailabilityStatus) => void;
+  onBulkChange?: (slots: TimeSlotType[], status: AvailabilityStatus, label: string) => void;
+  onCopySameWeekday?: (date: string) => void;
 }) {
   const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus>(
     AVAILABILITY_STATUS.UNAVAILABLE,
@@ -42,12 +47,12 @@ export function DayAvailabilityEditor({
   return (
     <section className="day-availability-editor">
       <div className="day-editor-heading">
-        <div><span>選択した日を編集</span><h3>{label}</h3></div>
-        <button className="bulk-button" type="button" onClick={() => onCopySameWeekday(date)}>
+        <div><span>{readOnly ? "AI下書きの確認" : "選択した日を編集"}</span><h3>{label}</h3></div>
+        {!readOnly && <button className="bulk-button" type="button" onClick={() => onCopySameWeekday?.(date)}>
           <Copy size={16} />同じ曜日の全日へコピー
-        </button>
+        </button>}
       </div>
-      <div className="status-picker compact-picker" role="radiogroup" aria-label="この日の入力状態">
+      {!readOnly && <div className="status-picker compact-picker" role="radiogroup" aria-label="この日の入力状態">
         {STATUS_OPTIONS.map(({ status, Icon }) => (
           <button
             key={status}
@@ -60,14 +65,14 @@ export function DayAvailabilityEditor({
             <Icon size={16} strokeWidth={3} />{STATUS_META[status].label}
           </button>
         ))}
-      </div>
-      <button
+      </div>}
+      {!readOnly && <button
         className="day-bulk-button"
         type="button"
-        onClick={() => onBulkChange(slots, selectedStatus, `${label}を一括設定`)}
+        onClick={() => onBulkChange?.(slots, selectedStatus, `${label}を一括設定`)}
       >
         この日をすべて「{STATUS_META[selectedStatus].label}」にする
-      </button>
+      </button>}
       <div className="day-hour-list">
         {slots.map((slot) => (
           <div className="day-hour-row" key={slotKey(slot)}>
@@ -76,7 +81,9 @@ export function DayAvailabilityEditor({
               slot={slot}
               status={statuses[slotKey(slot)] ?? AVAILABILITY_STATUS.AVAILABLE}
               selectedStatus={selectedStatus}
-              onChange={(status) => onChange(slot, status)}
+              source={sources[slotKey(slot)]}
+              disabled={readOnly}
+              onChange={(status) => onChange?.(slot, status)}
             />
           </div>
         ))}

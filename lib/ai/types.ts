@@ -1,10 +1,29 @@
-import type { Availability, AvailabilityStatus } from "@/types/availability";
+import type {
+  AvailabilitySource,
+  AvailabilityStatus,
+} from "@/types/availability";
 import type { Schedule } from "@/types/schedule";
 
+export const CONFIDENCE = {
+  HIGH: "HIGH",
+  MEDIUM: "MEDIUM",
+  LOW: "LOW",
+} as const;
+
+export type Confidence = (typeof CONFIDENCE)[keyof typeof CONFIDENCE];
+
 interface AvailabilityRuleBase {
+  id?: string;
   startHour: number;
   endHour: number;
   status: AvailabilityStatus;
+  confidence?: Confidence;
+  reason?: string;
+}
+
+export interface DateAvailabilityRule extends AvailabilityRuleBase {
+  type: "DATE";
+  date: string;
 }
 
 export interface DateRangeAvailabilityRule extends AvailabilityRuleBase {
@@ -19,25 +38,50 @@ export interface WeekdayAvailabilityRule extends AvailabilityRuleBase {
   weekdays: number[];
 }
 
-/** 将来の自然言語入力が返す、画面の一括入力と共通の構造化ルール。 */
+/** 手動一括・AI下書き・将来のテンプレート入力で共有するルール。 */
 export type AvailabilityRule =
+  | DateAvailabilityRule
   | DateRangeAvailabilityRule
   | WeekdayAvailabilityRule;
 
-export interface NaturalLanguageAvailabilityRequest {
-  schedule: Schedule;
-  participantId: string;
+export type SchedulePreferenceType = "TIME_OF_DAY" | "WEEKDAY" | "GENERAL";
+
+export interface SchedulePreference {
+  type: SchedulePreferenceType;
+  value: string;
+  weight?: number;
+  reason?: string;
+}
+
+export interface AIAvailabilityResponse {
+  availabilityRules: AvailabilityRule[];
+  preferences: SchedulePreference[];
+  summary: string;
+}
+
+export type LifePattern = "STUDENT" | "EMPLOYEE" | "SHIFT" | "OTHER";
+export type Busyness = "EASY" | "NORMAL" | "BUSY";
+export type PreferredTime = "MORNING" | "AFTERNOON" | "EVENING" | "NONE";
+
+export interface AIAvailabilityProfile {
+  lifePattern: LifePattern;
+  weekdayBusyness: Busyness;
+  weekendBusyness: Busyness;
+  preferredTime: PreferredTime;
+}
+
+export interface AIAvailabilityRequest {
+  schedule: Pick<
+    Schedule,
+    "startDate" | "durationDays" | "dailyStartHour" | "dailyEndHour"
+  >;
   text: string;
+  profile: AIAvailabilityProfile;
 }
 
-export interface NaturalLanguageAvailabilityResult {
-  changes: Availability[];
-  rules?: AvailabilityRule[];
-  explanation: string;
-}
+export type AvailabilitySourceMap = Record<string, AvailabilitySource>;
 
-export interface AvailabilityInterpreter {
-  interpret(
-    request: NaturalLanguageAvailabilityRequest,
-  ): Promise<NaturalLanguageAvailabilityResult>;
+export interface AvailabilityDraftState {
+  statuses: Record<string, AvailabilityStatus>;
+  sources: AvailabilitySourceMap;
 }

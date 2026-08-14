@@ -1,7 +1,12 @@
 import { getDay, isWithinInterval, parseISO } from "date-fns";
-import type { AvailabilityRule } from "../ai/types";
+import type {
+  AvailabilityDraftState,
+  AvailabilityRule,
+} from "../ai/types";
 import {
+  AVAILABILITY_SOURCE,
   AVAILABILITY_STATUS,
+  type AvailabilitySource,
   type AvailabilityStatus,
 } from "../../types/availability";
 import type { TimeSlot } from "../../types/schedule";
@@ -22,11 +27,63 @@ export function slotsMatchingRule(
       return rule.weekdays.includes(getDay(parseISO(slot.date)));
     }
 
+    if (rule.type === "DATE") return slot.date === rule.date;
+
     return isWithinInterval(parseISO(slot.date), {
       start: parseISO(rule.startDate),
       end: parseISO(rule.endDate),
     });
   });
+}
+
+export interface ApplyAvailabilityRulesOptions {
+  source?: AvailabilitySource;
+  preserveManual?: boolean;
+}
+
+export interface ApplyAvailabilityRulesResult {
+  state: AvailabilityDraftState;
+  changedKeys: string[];
+  skippedManualKeys: string[];
+}
+
+/**
+ * 曜日一括・期間一括・AI下書きで共有する純粋関数。
+ * AI適用時は preserveManual=true にして MANUAL > AI を保証する。
+ */
+export function applyAvailabilityRules(
+  state: AvailabilityDraftState,
+  slots: TimeSlot[],
+  rules: AvailabilityRule[],
+  options: ApplyAvailabilityRulesOptions = {},
+): ApplyAvailabilityRulesResult {
+  const source = options.source ?? AVAILABILITY_SOURCE.MANUAL;
+  const statuses = { ...state.statuses };
+  const sources = { ...state.sources };
+  const changed = new Set<string>();
+  const skipped = new Set<string>();
+
+  for (const rule of rules) {
+    for (const slot of slotsMatchingRule(slots, rule)) {
+      const key = slotKey(slot);
+      if (
+        options.preserveManual &&
+        sources[key] === AVAILABILITY_SOURCE.MANUAL
+      ) {
+        skipped.add(key);
+        continue;
+      }
+      statuses[key] = rule.status;
+      sources[key] = source;
+      changed.add(key);
+    }
+  }
+
+  return {
+    state: { statuses, sources },
+    changedKeys: [...changed],
+    skippedManualKeys: [...skipped],
+  };
 }
 
 export function applyAvailabilityRule(

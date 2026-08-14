@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./calendar.css";
+@import "./ai-assistant.css";
 
 :root {
   --ink: #182925;

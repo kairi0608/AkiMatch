@@ -1,9 +1,14 @@
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
-import type { AvailabilityStatus } from "@/types/availability";
+import {
+  AVAILABILITY_SOURCE,
+  type AvailabilitySource,
+  type AvailabilityStatus,
+} from "@/types/availability";
 import type { TimeSlot } from "@/types/schedule";
 import { groupDatesByMonth } from "@/lib/scheduling/calendar";
 import { summarizeDayAvailability } from "@/lib/scheduling/availability-rules";
+import { slotKey } from "@/lib/scheduling/time-slots";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -11,6 +16,7 @@ export function MonthlyCalendar({
   dates,
   slots,
   statuses,
+  sources = {},
   candidateKeys,
   selectedDate,
   onSelectDate,
@@ -18,6 +24,7 @@ export function MonthlyCalendar({
   dates: string[];
   slots: TimeSlot[];
   statuses: Record<string, AvailabilityStatus>;
+  sources?: Record<string, AvailabilitySource>;
   candidateKeys: ReadonlySet<string>;
   selectedDate: string;
   onSelectDate: (date: string) => void;
@@ -36,6 +43,9 @@ export function MonthlyCalendar({
             ))}
             {month.dates.map((date) => {
               const summary = summarizeDayAvailability(date, slots, statuses, candidateKeys);
+              const aiHours = slots.filter(
+                (slot) => slot.date === date && sources[slotKey(slot)] === AVAILABILITY_SOURCE.AI,
+              ).length;
               return (
                 <button
                   type="button"
@@ -45,6 +55,7 @@ export function MonthlyCalendar({
                   aria-label={`${format(parseISO(date), "M月d日EEEE", { locale: ja })}、候補${summary.candidateHours}時間、参加不可${summary.unavailableHours}時間`}
                 >
                   <strong>{format(parseISO(date), "d")}</strong>
+                  {aiHours > 0 && <em className="ai-calendar-badge">AI {aiHours}</em>}
                   <span className={summary.candidateHours ? "candidate" : "muted"}>
                     候補 {summary.candidateHours}時間
                   </span>
