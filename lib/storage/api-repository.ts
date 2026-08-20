@@ -7,7 +7,7 @@ import {
   type AvailabilityStatus,
 } from "@/types/availability";
 import type { Availability } from "@/types/availability";
-import type { Participant } from "@/types/participant";
+import type { Participant, ParticipantManagementSummary } from "@/types/participant";
 import type { Schedule } from "@/types/schedule";
 import type { ScheduleBundle } from "./repository";
 import { generateTimeSlots, slotKey } from "@/lib/scheduling/time-slots";
@@ -215,6 +215,26 @@ export const scheduleRepository = {
       {
         method: "DELETE",
         headers: { Authorization: `Bearer ${editToken}` },
+      },
+    );
+  },
+
+  async getOwnedParticipants(scheduleId: string) {
+    return json<{ schedule: Schedule; participants: ParticipantManagementSummary[] }>(
+      `/api/schedules/${encodeURIComponent(scheduleId)}/participants`,
+      { headers: { Authorization: `Bearer ${ownerToken()}` } },
+    );
+  },
+
+  async deleteParticipantAsOwner(
+    scheduleId: string,
+    participantId: string,
+  ) {
+    return json<{ deleted: true }>(
+      `/api/schedules/${encodeURIComponent(scheduleId)}/participants/${encodeURIComponent(participantId)}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${ownerToken()}` },
       },
     );
   },

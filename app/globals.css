@@ -292,11 +292,30 @@ input::placeholder { color: #9aa7a3; }
 .history-date span { font-size: 10px; }
 .history-details h2 { margin: 0 0 8px; font-size: 19px; }
 .history-details p { margin: 3px 0; color: var(--muted); display: flex; align-items: center; gap: 6px; font-size: 12px; }
-.history-actions { display: flex; gap: 7px; }
+.history-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
 .history-delete-button { min-height: 40px; padding: 0 11px; border: 1px solid #edc5c0; border-radius: 10px; color: var(--red); background: var(--red-soft); display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; font-weight: 900; cursor: pointer; }
 .history-delete-button:hover { border-color: var(--red); background: #fde6e2; }
 .history-edit-button { min-height: 40px; padding: 0 11px; border: 1px solid #b9ddd5; border-radius: 10px; color: var(--teal-dark); background: var(--teal-soft); display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; font-weight: 900; text-decoration: none; }
 .history-edit-button:hover { border-color: var(--teal); background: #dff3ee; }
+.history-participant-button { min-height: 40px; padding: 0 11px; border: 1px solid #c8d9ee; border-radius: 10px; color: #315f84; background: #eff6fd; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; font-weight: 900; text-decoration: none; }
+.history-participant-button:hover { border-color: #6b9bc2; background: #e4f0fb; }
+.participant-management-shell { max-width: 1000px; }
+.participant-heading-actions { display: flex; align-items: center; gap: 7px; }
+.participant-management-note { margin: 0 0 18px; padding: 16px 18px; border: 1px solid #c8d9ee; border-radius: 14px; color: #315f84; background: #eff6fd; display: flex; align-items: flex-start; gap: 11px; }
+.participant-management-note svg { flex: 0 0 auto; margin-top: 2px; }
+.participant-management-note strong { font-size: 13px; }
+.participant-management-note p { margin: 4px 0 0; color: #58758c; font-size: 11px; line-height: 1.6; }
+.participant-management-list { display: grid; gap: 10px; }
+.participant-management-card { padding: 18px; border: 1px solid var(--line); border-radius: 15px; background: white; display: grid; grid-template-columns: 46px 1fr auto; align-items: center; gap: 14px; }
+.participant-avatar { width: 46px; height: 46px; border-radius: 13px; color: var(--teal-dark); background: var(--teal-soft); display: grid; place-items: center; }
+.participant-management-details h2 { margin: 0 0 5px; font-size: 17px; }
+.participant-management-details > p { margin: 0 0 8px; color: var(--muted); display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.participant-management-details > div { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.participant-management-details span, .participant-management-details small { padding: 4px 7px; border-radius: 7px; color: var(--muted); background: #f1f5f4; font-size: 9px; font-weight: 800; }
+.participant-management-details .self-manage-enabled { color: var(--teal-dark); background: var(--teal-soft); }
+.participant-management-details .legacy-response { color: #8b6517; background: #fff4d7; }
+.participant-delete-button { min-height: 40px; padding: 0 12px; border: 1px solid #edc5c0; border-radius: 10px; color: var(--red); background: var(--red-soft); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; font-weight: 900; cursor: pointer; }
+.participant-empty > svg { width: 42px; height: 42px; color: var(--teal); }
 .edit-loading { min-height: 54vh; }
 .edit-empty { min-height: 54vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .edit-locked-note { margin: 0 0 22px; padding: 14px 16px; border: 1px solid #eed9a9; border-radius: 12px; color: #795c17; background: #fff9e9; display: flex; align-items: flex-start; gap: 10px; }
@@ -427,9 +446,15 @@ input::placeholder { color: #9aa7a3; }
   .history-actions .btn { flex: 1; }
   .history-actions .history-delete-button { flex: 1; }
   .history-actions .history-edit-button { flex: 1; }
+  .history-actions .history-participant-button { flex: 1; }
   .history-actions { flex-wrap: wrap; }
   .edit-submit { align-items: stretch; flex-direction: column-reverse; }
   .edit-submit .btn { width: 100%; }
+  .participant-heading-actions { align-items: stretch; flex-direction: column; }
+  .participant-heading-actions .btn { width: 100%; }
+  .participant-management-card { grid-template-columns: 42px 1fr; padding: 15px; }
+  .participant-avatar { width: 42px; height: 42px; }
+  .participant-delete-button { grid-column: 1 / -1; min-height: 46px; }
   .delete-dialog-backdrop { padding: 14px; }
   .delete-dialog { padding: 24px 16px 18px; }
   .delete-dialog-actions { grid-template-columns: 1fr; }

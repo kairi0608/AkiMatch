@@ -2,7 +2,7 @@ import "server-only";
 
 import { neon } from "@neondatabase/serverless";
 import type { Availability } from "@/types/availability";
-import type { Participant } from "@/types/participant";
+import type { Participant, ParticipantManagementSummary } from "@/types/participant";
 import type { Schedule } from "@/types/schedule";
 import { toPublicParticipant } from "@/lib/storage/participant-public";
 
@@ -324,6 +324,60 @@ export async function deleteRemoteParticipantResponse(
       and schedule_id = ${scheduleId}
       and edit_token_hash = ${editTokenHash}
     returning id
+  `;
+  return rows.length > 0;
+}
+
+export async function getRemoteParticipantsForOwner(
+  scheduleId: string,
+  ownerToken: string,
+) {
+  const sql = database();
+  const [scheduleRows, participantRows] = await sql.transaction(
+    (tx) => [
+      tx`
+        select * from schedules
+        where id = ${scheduleId} and owner_token = ${ownerToken}
+        limit 1
+      `,
+      tx`
+        select p.*,
+          (select count(*) from availabilities a where a.participant_id = p.id) as availability_count
+        from participants p
+        inner join schedules s on s.id = p.schedule_id
+        where p.schedule_id = ${scheduleId} and s.owner_token = ${ownerToken}
+        order by p.created_at asc
+      `,
+    ],
+    { readOnly: true, isolationLevel: "RepeatableRead" },
+  );
+  if (!scheduleRows[0]) return null;
+  return {
+    schedule: toSchedule(scheduleRows[0] as ScheduleRow),
+    participants: (participantRows as Array<ParticipantRow & { availability_count: number }>).map(
+      (row): ParticipantManagementSummary => ({
+        ...toPublicParticipant(row),
+        availabilityCount: Number(row.availability_count),
+        canSelfManage: Boolean(row.edit_token_hash),
+      }),
+    ),
+  };
+}
+
+export async function deleteRemoteParticipantAsOwner(
+  scheduleId: string,
+  participantId: string,
+  ownerToken: string,
+) {
+  const sql = database();
+  const rows = await sql`
+    delete from participants p
+    using schedules s
+    where p.id = ${participantId}
+      and p.schedule_id = ${scheduleId}
+      and s.id = p.schedule_id
+      and s.owner_token = ${ownerToken}
+    returning p.id
   `;
   return rows.length > 0;
 }

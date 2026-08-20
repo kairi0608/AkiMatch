@@ -4,3 +4,8 @@ export interface Participant {
   name: string;
   createdAt: string;
 }
+
+export interface ParticipantManagementSummary extends Participant {
+  availabilityCount: number;
+  canSelfManage: boolean;
+}
