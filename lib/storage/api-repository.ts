@@ -147,6 +147,20 @@ export const scheduleRepository = {
     removeLegacySchedule(scheduleId);
   },
 
+  async updateSchedule(
+    scheduleId: string,
+    input: Omit<Schedule, "id" | "createdAt">,
+  ) {
+    const result = await json<{ schedule: Schedule }>(
+      `/api/schedules/${encodeURIComponent(scheduleId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ ...input, ownerToken: ownerToken() }),
+      },
+    );
+    return result.schedule;
+  },
+
   async addParticipantResponse(
     scheduleId: string,
     name: string,

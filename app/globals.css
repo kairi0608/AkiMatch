@@ -270,6 +270,17 @@ input::placeholder { color: #9aa7a3; }
 .history-actions { display: flex; gap: 7px; }
 .history-delete-button { min-height: 40px; padding: 0 11px; border: 1px solid #edc5c0; border-radius: 10px; color: var(--red); background: var(--red-soft); display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; font-weight: 900; cursor: pointer; }
 .history-delete-button:hover { border-color: var(--red); background: #fde6e2; }
+.history-edit-button { min-height: 40px; padding: 0 11px; border: 1px solid #b9ddd5; border-radius: 10px; color: var(--teal-dark); background: var(--teal-soft); display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; font-weight: 900; text-decoration: none; }
+.history-edit-button:hover { border-color: var(--teal); background: #dff3ee; }
+.edit-loading { min-height: 54vh; }
+.edit-empty { min-height: 54vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.edit-locked-note { margin: 0 0 22px; padding: 14px 16px; border: 1px solid #eed9a9; border-radius: 12px; color: #795c17; background: #fff9e9; display: flex; align-items: flex-start; gap: 10px; }
+.edit-locked-note svg { flex: 0 0 auto; margin-top: 2px; }
+.edit-locked-note strong { font-size: 13px; }
+.edit-locked-note p { margin: 3px 0 0; font-size: 11px; line-height: 1.6; }
+.edit-schedule-shell input:disabled, .edit-schedule-shell select:disabled { color: #7a8582; background: #eef2f1; cursor: not-allowed; opacity: .8; }
+.edit-submit { justify-content: flex-end; gap: 9px; }
+.edit-submit .btn { min-width: 150px; }
 .history-empty > svg { width: 44px; height: 44px; color: var(--teal); }
 .delete-dialog-backdrop { position: fixed; z-index: 100; inset: 0; padding: 22px; background: rgba(24,41,37,.52); backdrop-filter: blur(5px); display: grid; place-items: center; }
 .delete-dialog { width: min(470px, 100%); padding: 27px; position: relative; border-radius: 20px; background: white; box-shadow: 0 25px 80px rgba(18,39,34,.28); text-align: center; }
@@ -384,6 +395,10 @@ input::placeholder { color: #9aa7a3; }
   .history-actions { grid-column: 1 / -1; }
   .history-actions .btn { flex: 1; }
   .history-actions .history-delete-button { flex: 1; }
+  .history-actions .history-edit-button { flex: 1; }
+  .history-actions { flex-wrap: wrap; }
+  .edit-submit { align-items: stretch; flex-direction: column-reverse; }
+  .edit-submit .btn { width: 100%; }
   .delete-dialog-backdrop { padding: 14px; }
   .delete-dialog { padding: 24px 16px 18px; }
   .delete-dialog-actions { grid-template-columns: 1fr; }

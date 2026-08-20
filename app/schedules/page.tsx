@@ -11,6 +11,7 @@ import {
   Clock3,
   History,
   LoaderCircle,
+  Pencil,
   Plus,
   Trash2,
   X,
@@ -70,7 +71,7 @@ export default function SchedulesPage() {
     {!loaded ? <div className="loading-state"><span /><p>日程を読み込んでいます…</p></div> : error ? <div className="empty-state"><strong>一覧を読み込めませんでした</strong><p>{error}</p></div> : schedules.length === 0 ? <div className="empty-state history-empty"><CalendarDays /><strong>作成済みの日程はありません</strong><p>最初の日程調整を作成すると、ここからいつでも開けます。</p><Link className="btn" href="/create">日程調整を作成</Link></div> : <div className="history-list">{schedules.map((schedule) => <article className="history-card" key={schedule.id}>
       <div className="history-date"><strong>{format(parseISO(schedule.startDate), "M/d", { locale: ja })}</strong><span>{format(parseISO(schedule.startDate), "yyyy", { locale: ja })}</span></div>
       <div className="history-details"><h2>{schedule.title}</h2><p><CalendarDays size={15} />{format(parseISO(schedule.startDate), "yyyy年M月d日", { locale: ja })}から{schedule.durationDays}日間</p><p><Clock3 size={15} />{String(schedule.dailyStartHour).padStart(2, "0")}:00〜{String(schedule.dailyEndHour).padStart(2, "0")}:00 · {schedule.requiredDurationHours}時間</p></div>
-      <div className="history-actions"><button className="history-delete-button" type="button" onClick={() => openDeleteDialog(schedule)}><Trash2 size={15} />削除</button><Link className="btn secondary compact" href={`/result/${schedule.id}`}>結果</Link><Link className="btn compact" href={`/schedule/${schedule.id}`}>開く <ArrowRight size={16} /></Link></div>
+      <div className="history-actions"><Link className="history-edit-button" href={`/schedules/${schedule.id}/edit`}><Pencil size={15} />修正</Link><button className="history-delete-button" type="button" onClick={() => openDeleteDialog(schedule)}><Trash2 size={15} />削除</button><Link className="btn secondary compact" href={`/result/${schedule.id}`}>結果</Link><Link className="btn compact" href={`/schedule/${schedule.id}`}>開く <ArrowRight size={16} /></Link></div>
     </article>)}</div>}
 
     {deleteTarget && <div className="delete-dialog-backdrop" role="presentation">

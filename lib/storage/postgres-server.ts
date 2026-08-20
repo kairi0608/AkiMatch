@@ -115,6 +115,55 @@ export async function deleteRemoteSchedule(id: string, ownerToken: string) {
   return rows.length > 0;
 }
 
+export type UpdateRemoteScheduleResult =
+  | { status: "updated"; schedule: Schedule }
+  | { status: "not_found" }
+  | { status: "has_responses" };
+
+export async function updateRemoteSchedule(
+  id: string,
+  ownerToken: string,
+  input: Omit<Schedule, "id" | "createdAt">,
+): Promise<UpdateRemoteScheduleResult> {
+  const sql = database();
+  const rows = await sql`
+    update schedules as schedule
+    set
+      title = ${input.title},
+      start_date = ${input.startDate},
+      duration_days = ${input.durationDays},
+      daily_start_hour = ${input.dailyStartHour},
+      daily_end_hour = ${input.dailyEndHour},
+      required_duration_hours = ${input.requiredDurationHours}
+    where schedule.id = ${id}
+      and schedule.owner_token = ${ownerToken}
+      and (
+        not exists (
+          select 1 from participants
+          where participants.schedule_id = schedule.id
+        )
+        or (
+          schedule.start_date = ${input.startDate}
+          and schedule.duration_days = ${input.durationDays}
+          and schedule.daily_start_hour = ${input.dailyStartHour}
+          and schedule.daily_end_hour = ${input.dailyEndHour}
+          and schedule.required_duration_hours = ${input.requiredDurationHours}
+        )
+      )
+    returning schedule.*
+  `;
+  if (rows[0]) {
+    return { status: "updated", schedule: toSchedule(rows[0] as ScheduleRow) };
+  }
+
+  const ownedRows = await sql`
+    select id from schedules
+    where id = ${id} and owner_token = ${ownerToken}
+    limit 1
+  `;
+  return ownedRows.length > 0 ? { status: "has_responses" } : { status: "not_found" };
+}
+
 export async function getRemoteScheduleBundle(id: string) {
   const sql = database();
   const [scheduleRows, participantRows, availabilityRows] = await sql.transaction(
