@@ -21,6 +21,7 @@
 - AI下書きの月間プレビュー、AIラベル、手動入力優先、1段階Undo
 - 過去の日程一覧から作成済み日程を修正し、確認後に日程・参加者・回答をまとめて削除
 - 回答済みの日程は参加者データを保護するためタイトルのみ修正可能
+- 回答者本人による回答・名前の後編集、回答管理リンク、確認付き回答削除
 - 最小衝突モードをすぐ確認できる「デモを試す」機能
 - AI未設定時も通常入力・一括入力・結果表示はすべて利用可能
 
@@ -31,6 +32,7 @@ app/
   page.tsx                 トップページ
   create/page.tsx          日程調整作成
   schedule/[id]/page.tsx   参加者登録・予定入力
+  schedule/[id]/response/  回答者本人の回答管理
   result/[id]/page.tsx     おすすめ10件
   result/[id]/all/page.tsx 期間内の全候補カレンダー
   schedules/[id]/edit/     作成済み日程の修正
@@ -55,6 +57,10 @@ npm run build
 
 Neon PostgreSQLへ保存し、共有URLを別端末から開いても同じ日程と回答を読み込めます。旧バージョンでブラウザに保存した日程は「過去の日程」を初めて開いたときに共有DBへ移行します。
 
+## 回答の後編集・削除
+
+新しく送信した回答には本人専用の編集トークンを発行します。DBにはSHA-256 hashだけを保存し、元のトークンは回答したブラウザの`akimatch.response-credentials.v1`へ保存します。同じ端末では日程ページから回答を再表示でき、`#token=...`を使う回答管理リンクなら別端末でも本人確認できます。トークンを紛失した既存回答を名前だけで復旧することはありません。
+
 ## AIおまかせ入力
 
 回答画面で普段の生活や予定を文章で入力すると、サーバー側のOpenAI APIが構造化ルールへ変換します。結果は月間カレンダーで確認でき、ユーザーが「この内容を反映」を押すまで回答stateやDBへ反映されません。AIと手動設定が重なった場合は手動設定を維持します。
@@ -65,12 +71,12 @@ AI入力でエラーになる場合は、`OPENAI_API_KEY`がProduction環境に�
 
 ## Vercel
 
-GitHubリポジトリをVercelへ接続し、Framework PresetをNext.jsにしてデプロイできます。Vercel MarketplaceからNeonを接続し、NeonのSQL Editorで`neon/schema.sql`を実行してください。接続時にVercelへ`DATABASE_URL`が自動設定されます。手動接続の場合は、Neonの接続文字列を`DATABASE_URL`へ設定します。接続情報はサーバーAPIだけで利用し、ブラウザへ公開しません。
+GitHubリポジトリをVercelへ接続し、Framework PresetをNext.jsにしてデプロイできます。Vercel MarketplaceからNeonを接続し、新規DBではNeonのSQL Editorで`neon/schema.sql`を実行してください。既存DBにはデプロイ前に`neon/migrations/20260820_response_edit_tokens.sql`も実行します。接続時にVercelへ`DATABASE_URL`が自動設定されます。手動接続の場合は、Neonの接続文字列を`DATABASE_URL`へ設定します。接続情報はサーバーAPIだけで利用し、ブラウザへ公開しません。
 
 ## 次フェーズ
 
 - リアルタイム同期
-- 回答編集、主催者管理、締切
+- 主催者による参加者管理、締切
 - AIとの複数ターン会話・確認質問
 - AIによる最終候補の理由説明
 - Google Calendar / Outlook Calendar連携

@@ -16,7 +16,9 @@ create table if not exists participants (
   id text primary key,
   schedule_id text not null references schedules(id) on delete cascade,
   name text not null check (char_length(name) between 1 and 40),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  edit_token_hash text,
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists availabilities (

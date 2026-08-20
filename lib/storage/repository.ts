@@ -11,7 +11,7 @@ export interface ScheduleRepository {
     scheduleId: string,
     name: string,
     availability: Omit<Availability, "participantId">[],
-  ): Participant;
+  ): Promise<{ participant: Participant; editToken: string }>;
   seedDemo(): Schedule;
 }
 

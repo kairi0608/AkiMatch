@@ -4,6 +4,7 @@ import { neon } from "@neondatabase/serverless";
 import type { Availability } from "@/types/availability";
 import type { Participant } from "@/types/participant";
 import type { Schedule } from "@/types/schedule";
+import { toPublicParticipant } from "@/lib/storage/participant-public";
 
 interface ScheduleRow extends Record<string, unknown> {
   id: string;
@@ -22,6 +23,8 @@ interface ParticipantRow extends Record<string, unknown> {
   schedule_id: string;
   name: string;
   created_at: string;
+  edit_token_hash: string | null;
+  updated_at: string;
 }
 
 interface AvailabilityRow extends Record<string, unknown> {
@@ -57,13 +60,6 @@ const toSchedule = (row: ScheduleRow): Schedule => ({
   dailyStartHour: Number(row.daily_start_hour),
   dailyEndHour: Number(row.daily_end_hour),
   requiredDurationHours: Number(row.required_duration_hours),
-  createdAt: dateValue(row.created_at),
-});
-
-const toParticipant = (row: ParticipantRow): Participant => ({
-  id: row.id,
-  scheduleId: row.schedule_id,
-  name: row.name,
   createdAt: dateValue(row.created_at),
 });
 
@@ -182,7 +178,7 @@ export async function getRemoteScheduleBundle(id: string) {
   if (!scheduleRows[0]) return null;
   return {
     schedule: toSchedule(scheduleRows[0] as ScheduleRow),
-    participants: (participantRows as ParticipantRow[]).map(toParticipant),
+    participants: (participantRows as ParticipantRow[]).map(toPublicParticipant),
     availabilities: (availabilityRows as AvailabilityRow[]).map(toAvailability),
   };
 }
@@ -191,6 +187,7 @@ export async function addRemoteResponse(
   scheduleId: string,
   participant: Participant,
   availabilities: Availability[],
+  editTokenHash: string | null = null,
 ) {
   const sql = database();
   const availabilityJson = JSON.stringify(
@@ -204,8 +201,12 @@ export async function addRemoteResponse(
   );
   await sql.transaction((tx) => [
     tx`
-      insert into participants (id, schedule_id, name, created_at)
-      values (${participant.id}, ${scheduleId}, ${participant.name}, ${participant.createdAt})
+      insert into participants (
+        id, schedule_id, name, created_at, edit_token_hash, updated_at
+      ) values (
+        ${participant.id}, ${scheduleId}, ${participant.name}, ${participant.createdAt},
+        ${editTokenHash}, ${participant.createdAt}
+      )
     `,
     tx`
       insert into availabilities (participant_id, date, hour, status, source)
@@ -222,6 +223,111 @@ export async function addRemoteResponse(
   return participant;
 }
 
+export async function getRemoteParticipantResponse(
+  scheduleId: string,
+  participantId: string,
+  editTokenHash: string,
+) {
+  const sql = database();
+  const [participantRows, availabilityRows] = await sql.transaction(
+    (tx) => [
+      tx`
+        select * from participants
+        where id = ${participantId}
+          and schedule_id = ${scheduleId}
+          and edit_token_hash = ${editTokenHash}
+        limit 1
+      `,
+      tx`
+        select a.*
+        from availabilities a
+        inner join participants p on p.id = a.participant_id
+        where p.id = ${participantId}
+          and p.schedule_id = ${scheduleId}
+          and p.edit_token_hash = ${editTokenHash}
+        order by a.date asc, a.hour asc
+      `,
+    ],
+    { readOnly: true, isolationLevel: "RepeatableRead" },
+  );
+  if (!participantRows[0]) return null;
+  return {
+    participant: toPublicParticipant(participantRows[0] as ParticipantRow),
+    availability: (availabilityRows as AvailabilityRow[]).map(toAvailability),
+  };
+}
+
+export async function updateRemoteParticipantResponse(
+  scheduleId: string,
+  participant: Participant,
+  editTokenHash: string,
+  name: string,
+  availabilities: Availability[],
+) {
+  const sql = database();
+  const availabilityJson = JSON.stringify(
+    availabilities.map((item) => ({
+      participant_id: item.participantId,
+      date: item.date,
+      hour: item.hour,
+      status: item.status,
+      source: item.source,
+    })),
+  );
+  const [updatedRows] = await sql.transaction((tx) => [
+    tx`
+      update participants
+      set name = ${name}, updated_at = now()
+      where id = ${participant.id}
+        and schedule_id = ${scheduleId}
+        and edit_token_hash = ${editTokenHash}
+      returning *
+    `,
+    tx`
+      delete from availabilities a
+      using participants p
+      where a.participant_id = p.id
+        and p.id = ${participant.id}
+        and p.schedule_id = ${scheduleId}
+        and p.edit_token_hash = ${editTokenHash}
+    `,
+    tx`
+      insert into availabilities (participant_id, date, hour, status, source)
+      select x.participant_id, x.date, x.hour, x.status, x.source
+      from json_to_recordset(${availabilityJson}::json) as x(
+        participant_id text,
+        date date,
+        hour integer,
+        status text,
+        source text
+      )
+      inner join participants p on p.id = x.participant_id
+      where p.id = ${participant.id}
+        and p.schedule_id = ${scheduleId}
+        and p.edit_token_hash = ${editTokenHash}
+    `,
+  ]);
+  return updatedRows[0]
+    ? toPublicParticipant(updatedRows[0] as ParticipantRow)
+    : null;
+}
+
+export async function deleteRemoteParticipantResponse(
+  scheduleId: string,
+  participantId: string,
+  editTokenHash: string,
+) {
+  const sql = database();
+  const rows = await sql`
+    delete from participants
+    where id = ${participantId}
+      and schedule_id = ${scheduleId}
+      and edit_token_hash = ${editTokenHash}
+    returning id
+  `;
+  return rows.length > 0;
+}
+
 export async function importRemoteBundle(
   ownerToken: string,
   schedule: Schedule,
@@ -236,6 +342,7 @@ export async function importRemoteBundle(
       schedule.id,
       participant,
       availabilities.filter((item) => item.participantId === participant.id),
+      null,
     );
   }
   return created;

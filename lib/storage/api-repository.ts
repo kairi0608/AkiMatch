@@ -47,6 +47,7 @@ function ownerToken() {
 async function json<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
+    cache: init?.cache ?? "no-store",
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
   const body = (await response.json().catch(() => ({}))) as {
@@ -166,14 +167,56 @@ export const scheduleRepository = {
     name: string,
     availability: Omit<Availability, "participantId">[],
   ) {
-    const result = await json<{ participant: Participant }>(
+    const result = await json<{ participant: Participant; editToken: string }>(
       `/api/schedules/${encodeURIComponent(scheduleId)}/responses`,
       {
         method: "POST",
         body: JSON.stringify({ name, availability }),
       },
     );
-    return result.participant;
+    return result;
+  },
+
+  async getParticipantResponse(
+    scheduleId: string,
+    participantId: string,
+    editToken: string,
+  ) {
+    return json<{ participant: Participant; availability: Availability[] }>(
+      `/api/schedules/${encodeURIComponent(scheduleId)}/responses/${encodeURIComponent(participantId)}`,
+      { headers: { Authorization: `Bearer ${editToken}` } },
+    );
+  },
+
+  async updateParticipantResponse(
+    scheduleId: string,
+    participantId: string,
+    editToken: string,
+    name: string,
+    availability: Omit<Availability, "participantId">[],
+  ) {
+    return json<{ participant: Participant; availability: Availability[] }>(
+      `/api/schedules/${encodeURIComponent(scheduleId)}/responses/${encodeURIComponent(participantId)}`,
+      {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${editToken}` },
+        body: JSON.stringify({ name, availability }),
+      },
+    );
+  },
+
+  async deleteParticipantResponse(
+    scheduleId: string,
+    participantId: string,
+    editToken: string,
+  ) {
+    return json<{ deleted: true }>(
+      `/api/schedules/${encodeURIComponent(scheduleId)}/responses/${encodeURIComponent(participantId)}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${editToken}` },
+      },
+    );
   },
 
   async migrateLegacy() {
