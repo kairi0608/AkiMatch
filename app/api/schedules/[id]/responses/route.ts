@@ -43,17 +43,29 @@ export async function POST(
       participantId: participant.id,
     }));
     const editToken = createResponseEditToken();
-    await addRemoteResponse(
+    const saved = await addRemoteResponse(
       id,
       participant,
       availability,
       hashResponseEditToken(editToken),
     );
-    return NextResponse.json({ participant, editToken }, { status: 201 });
+    return NextResponse.json(
+      {
+        participant,
+        editToken: saved.editTokenStored ? editToken : null,
+        managementAvailable: saved.editTokenStored,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     if (error instanceof StorageConfigurationError) {
       return NextResponse.json({ error: "共有データベースが未設定です。" }, { status: 503 });
     }
-    return NextResponse.json({ error: "回答を保存できませんでした。" }, { status: 500 });
+    const code =
+      typeof error === "object" && error && "code" in error
+        ? String(error.code)
+        : undefined;
+    console.error("akimatch_response_save_failed", { code });
+    return NextResponse.json({ error: "回答を保存できませんでした。時間をおいてもう一度お試しください。" }, { status: 500 });
   }
 }

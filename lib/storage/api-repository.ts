@@ -167,7 +167,11 @@ export const scheduleRepository = {
     name: string,
     availability: Omit<Availability, "participantId">[],
   ) {
-    const result = await json<{ participant: Participant; editToken: string }>(
+    const result = await json<{
+      participant: Participant;
+      editToken: string | null;
+      managementAvailable: boolean;
+    }>(
       `/api/schedules/${encodeURIComponent(scheduleId)}/responses`,
       {
         method: "POST",

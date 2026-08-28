@@ -36,6 +36,7 @@ export default function SchedulePage() {
   const [loaded, setLoaded] = useState(false);
   const [editingName, setEditingName] = useState("");
   const [submittedCredential, setSubmittedCredential] = useState<ParticipantCredential | null>(null);
+  const [submittedWithoutManagement, setSubmittedWithoutManagement] = useState("");
   const [copied, setCopied] = useState<"SHARE" | "MANAGEMENT" | null>(null);
   const [loadError, setLoadError] = useState("");
 
@@ -76,14 +77,20 @@ export default function SchedulePage() {
       participantName,
       response,
     );
-    const credential: ParticipantCredential = {
-      scheduleId: schedule.id,
-      participantId: result.participant.id,
-      participantName: result.participant.name,
-      editToken: result.editToken,
-    };
-    saveResponseCredential(credential);
-    setSubmittedCredential(credential);
+    if (result.editToken) {
+      const credential: ParticipantCredential = {
+        scheduleId: schedule.id,
+        participantId: result.participant.id,
+        participantName: result.participant.name,
+        editToken: result.editToken,
+      };
+      saveResponseCredential(credential);
+      setSubmittedCredential(credential);
+      setSubmittedWithoutManagement("");
+    } else {
+      setSubmittedCredential(null);
+      setSubmittedWithoutManagement(result.participant.name);
+    }
     setEditingName("");
     await load();
   };
@@ -115,11 +122,11 @@ export default function SchedulePage() {
     <CandidateBanner selection={selection} participantCount={participants.length} />
     <CandidateSummary selection={selection} participantCount={participants.length} />
 
-    {submittedCredential && <div className="answer-complete response-complete"><CheckCircle2 /><div><strong>{submittedCredential.participantName}さんの回答を保存しました</strong><span>候補を再計算しました。管理リンクは別端末で修正するときに必要です。</span></div><div className="answer-complete-actions"><Link className="btn secondary compact" href={`/schedule/${schedule.id}/response/${submittedCredential.participantId}`}><Pencil size={16} />回答を修正する</Link><button className="btn secondary compact" type="button" onClick={() => copyManagementUrl(submittedCredential)}><Link2 size={16} />{copied === "MANAGEMENT" ? "コピーしました" : "回答管理リンクをコピー"}</button><Link className="btn compact" href={`/result/${schedule.id}`}>現在の結果を見る</Link></div></div>}
+    {(submittedCredential || submittedWithoutManagement) && <div className="answer-complete response-complete"><CheckCircle2 /><div><strong>{submittedCredential?.participantName ?? submittedWithoutManagement}さんの回答を保存しました</strong><span>{submittedCredential ? "候補を再計算しました。管理リンクは別端末で修正するときに必要です。" : "候補を再計算しました。DB更新権限がないため、この回答の本人編集リンクは発行されていません。"}</span></div><div className="answer-complete-actions">{submittedCredential && <><Link className="btn secondary compact" href={`/schedule/${schedule.id}/response/${submittedCredential.participantId}`}><Pencil size={16} />回答を修正する</Link><button className="btn secondary compact" type="button" onClick={() => copyManagementUrl(submittedCredential)}><Link2 size={16} />{copied === "MANAGEMENT" ? "コピーしました" : "回答管理リンクをコピー"}</button></>}<Link className="btn compact" href={`/result/${schedule.id}`}>現在の結果を見る</Link></div></div>}
 
     {!editingName ? <>
       <ExistingResponses credentials={credentials} />
-      <section className="answer-start"><div><span className="eyebrow">Your turn</span><h2>{credentials.length ? "別の参加者として回答" : "あなたの予定を教えてください"}</h2><p>最初は候補だけを表示します。全日程カレンダーや曜日・期間の一括入力も利用できます。</p></div><ParticipantForm onStart={(name) => { setSubmittedCredential(null); setEditingName(name); }} /></section>
+      <section className="answer-start"><div><span className="eyebrow">Your turn</span><h2>{credentials.length ? "別の参加者として回答" : "あなたの予定を教えてください"}</h2><p>最初は候補だけを表示します。全日程カレンダーや曜日・期間の一括入力も利用できます。</p></div><ParticipantForm onStart={(name) => { setSubmittedCredential(null); setSubmittedWithoutManagement(""); setEditingName(name); }} /></section>
     </> : <AvailabilityResponseEditor
       key={`new-${editingName}`}
       schedule={schedule}
@@ -131,4 +138,3 @@ export default function SchedulePage() {
     />}
   </div>;
 }
-

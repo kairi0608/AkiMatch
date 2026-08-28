@@ -75,7 +75,7 @@ AI入力でエラーになる場合は、`OPENAI_API_KEY`がProduction環境に�
 
 ## Vercel
 
-GitHubリポジトリをVercelへ接続し、Framework PresetをNext.jsにしてデプロイできます。Vercel MarketplaceからNeonを接続し、新規DBではNeonのSQL Editorで`neon/schema.sql`を実行してください。既存DBにはデプロイ前に`neon/migrations/20260820_response_edit_tokens.sql`も実行します。接続時にVercelへ`DATABASE_URL`が自動設定されます。手動接続の場合は、Neonの接続文字列を`DATABASE_URL`へ設定します。接続情報はサーバーAPIだけで利用し、ブラウザへ公開しません。
+GitHubリポジトリをVercelへ接続し、Framework PresetをNext.jsにしてデプロイできます。Vercel MarketplaceからNeonを接続し、新規DBではNeonのSQL Editorで`neon/schema.sql`を実行してください。既存DBにはデプロイ前に`neon/migrations/20260820_response_edit_tokens.sql`も実行します。未適用のままデプロイした場合は回答保存時に不足列の追加を自動で試み、DB roleにALTER権限がなくても回答自体は従来schemaへ保存します（その回答の本人編集リンクだけは発行されません）。接続時にVercelへ`DATABASE_URL`が自動設定されます。手動接続の場合は、Neonの接続文字列を`DATABASE_URL`へ設定します。接続情報はサーバーAPIだけで利用し、ブラウザへ公開しません。
 
 ## 次フェーズ
 

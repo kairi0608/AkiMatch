@@ -5,6 +5,7 @@ import type { Availability } from "@/types/availability";
 import type { Participant, ParticipantManagementSummary } from "@/types/participant";
 import type { Schedule } from "@/types/schedule";
 import { toPublicParticipant } from "@/lib/storage/participant-public";
+import { missingResponseManagementColumns } from "@/lib/storage/response-schema";
 
 interface ScheduleRow extends Record<string, unknown> {
   id: string;
@@ -39,6 +40,42 @@ export class StorageConfigurationError extends Error {
   constructor() {
     super("共有データベースが設定されていません。");
   }
+}
+
+let responseManagementSchemaPromise: Promise<void> | null = null;
+
+async function ensureResponseManagementSchema() {
+  if (!responseManagementSchemaPromise) {
+    responseManagementSchemaPromise = (async () => {
+      const sql = database();
+      const rows = await sql`
+        select column_name
+        from information_schema.columns
+        where table_schema = current_schema()
+          and table_name = 'participants'
+          and column_name in ('edit_token_hash', 'updated_at')
+      `;
+      const missing = missingResponseManagementColumns(
+        rows as Array<{ column_name?: unknown }>,
+      );
+      if (missing.includes("edit_token_hash")) {
+        await sql`
+          alter table participants
+          add column if not exists edit_token_hash text
+        `;
+      }
+      if (missing.includes("updated_at")) {
+        await sql`
+          alter table participants
+          add column if not exists updated_at timestamptz not null default now()
+        `;
+      }
+    })().catch((error) => {
+      responseManagementSchemaPromise = null;
+      throw error;
+    });
+  }
+  return responseManagementSchemaPromise;
 }
 
 function database() {
@@ -189,7 +226,6 @@ export async function addRemoteResponse(
   availabilities: Availability[],
   editTokenHash: string | null = null,
 ) {
-  const sql = database();
   const availabilityJson = JSON.stringify(
     availabilities.map((item) => ({
       participant_id: item.participantId,
@@ -199,28 +235,62 @@ export async function addRemoteResponse(
       source: item.source,
     })),
   );
-  await sql.transaction((tx) => [
-    tx`
-      insert into participants (
-        id, schedule_id, name, created_at, edit_token_hash, updated_at
-      ) values (
-        ${participant.id}, ${scheduleId}, ${participant.name}, ${participant.createdAt},
-        ${editTokenHash}, ${participant.createdAt}
-      )
-    `,
-    tx`
-      insert into availabilities (participant_id, date, hour, status, source)
-      select participant_id, date, hour, status, source
-      from json_to_recordset(${availabilityJson}::json) as x(
-        participant_id text,
-        date date,
-        hour integer,
-        status text,
-        source text
-      )
-    `,
-  ]);
-  return participant;
+  let editTokenStored = true;
+  try {
+    await ensureResponseManagementSchema();
+  } catch (error) {
+    editTokenStored = false;
+    const code =
+      typeof error === "object" && error && "code" in error
+        ? String(error.code)
+        : undefined;
+    console.warn("akimatch_response_schema_fallback", { code });
+  }
+
+  const sql = database();
+  if (editTokenStored) {
+    await sql.transaction((tx) => [
+      tx`
+        insert into participants (
+          id, schedule_id, name, created_at, edit_token_hash, updated_at
+        ) values (
+          ${participant.id}, ${scheduleId}, ${participant.name}, ${participant.createdAt},
+          ${editTokenHash}, ${participant.createdAt}
+        )
+      `,
+      tx`
+        insert into availabilities (participant_id, date, hour, status, source)
+        select participant_id, date, hour, status, source
+        from json_to_recordset(${availabilityJson}::json) as x(
+          participant_id text,
+          date date,
+          hour integer,
+          status text,
+          source text
+        )
+      `,
+    ]);
+  } else {
+    // DB roleにALTER権限がない場合でも、従来schemaへ回答自体は保存する。
+    await sql.transaction((tx) => [
+      tx`
+        insert into participants (id, schedule_id, name, created_at)
+        values (${participant.id}, ${scheduleId}, ${participant.name}, ${participant.createdAt})
+      `,
+      tx`
+        insert into availabilities (participant_id, date, hour, status, source)
+        select participant_id, date, hour, status, source
+        from json_to_recordset(${availabilityJson}::json) as x(
+          participant_id text,
+          date date,
+          hour integer,
+          status text,
+          source text
+        )
+      `,
+    ]);
+  }
+  return { participant, editTokenStored };
 }
 
 export async function getRemoteParticipantResponse(

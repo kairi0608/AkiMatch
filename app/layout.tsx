@@ -13,6 +13,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${APP_CONFIG.appName} | かしこい日程調整`,
     description: APP_CONFIG.description,
+    icons: {
+      icon: [{ url: "/favicon.ico", type: "image/svg+xml" }],
+    },
     openGraph: {
       title: `${APP_CONFIG.appName} | かしこい日程調整`,
       description: "空いているところだけ、次の人へ。回答するほど候補がすっきりする日程調整。",
