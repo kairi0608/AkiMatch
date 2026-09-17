@@ -103,9 +103,5 @@ export function ResultsCalendar({
       評価スコア {candidate.score}
     </span>
   </div>
-
-  <CandidateExternalActions
-    scheduleTitle={scheduleTitle}
-    candidate={candidate}
   />
 </details>
