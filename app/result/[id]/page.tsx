@@ -38,6 +38,10 @@ export default function ResultPage() {
     <Link className="back-link" href={`/schedule/${schedule.id}`}><ArrowLeft size={17} />回答画面へ戻る</Link>
     <header className="result-heading"><span className="eyebrow"><Sparkles size={14} /> Results</span><h1>{schedule.title}</h1><p>{participants.length}人の回答をもとに、参加しやすい順で並べました。</p></header>
     <div className="result-overview"><div className="overview-icon"><CalendarCheck2 /></div><div><span>いちばんおすすめ</span><strong>{best ? `${best.availableCount}人が参加可能` : "回答をお待ちしています"}</strong><p>{best ? "参加不可を最優先で避け、参加しづらさと候補の公平性も考慮しています。" : "回答が1件以上集まると、自動でランキングします。"}</p></div><div className="response-count"><UsersRound /><strong>{participants.length}</strong><span>回答</span></div></div>
-    <section className="ranking-section"><div className="section-head"><div><span className="eyebrow">Ranking</span><h2>おすすめ日時</h2></div><div className="section-head-actions"><small>候補を開くと参加状況を確認できます</small><Link className="btn secondary compact" href={`/result/${id}/all`}><ListFilter size={16} />期間内の全候補を見る</Link></div></div><ResultRanking candidates={ranking} participantCount={participants.length} /></section>
+    <section className="ranking-section"><div className="section-head"><div><span className="eyebrow">Ranking</span><h2>おすすめ日時</h2></div><div className="section-head-actions"><small>候補を開くと参加状況を確認できます</small><Link className="btn secondary compact" href={`/result/${id}/all`}><ListFilter size={16} />期間内の全候補を見る</Link></div></div><ResultRanking
+  candidates={ranking}
+  participantCount={participants.length}
+  scheduleTitle={schedule.title}
+/></section>
   </div>;
 }
