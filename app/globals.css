@@ -459,3 +459,30 @@ input::placeholder { color: #9aa7a3; }
   .delete-dialog { padding: 24px 16px 18px; }
   .delete-dialog-actions { grid-template-columns: 1fr; }
 }
+.candidate-external-actions {
+  padding: 0 20px 20px 108px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.daily-candidate-list .candidate-external-actions {
+  padding: 9px 10px;
+  border-top: 1px solid var(--line);
+  background: white;
+}
+
+@media (max-width: 650px) {
+  .candidate-external-actions {
+    padding: 0 13px 13px;
+    flex-direction: column;
+  }
+
+  .candidate-external-actions .btn {
+    width: 100%;
+  }
+
+  .daily-candidate-list .candidate-external-actions {
+    padding: 9px 10px 10px;
+  }
+}
