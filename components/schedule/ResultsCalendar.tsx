@@ -71,16 +71,41 @@ export function ResultsCalendar({
       <section className="result-day-detail">
         <div className="result-day-detail-heading"><span><CalendarCheck2 size={17} />選択日の全候補</span><h2>{selectedDate ? format(parseISO(selectedDate), "M月d日（E）", { locale: ja }) : "日付を選択"}</h2><p>{selectedCandidates.length}件の候補を参加しやすい順で表示</p></div>
         {selectedCandidates.length ? <div className="daily-candidate-list">{selectedCandidates.map((candidate) => (
-          <details key={`${candidate.window.date}-${candidate.window.startHour}`}>
-            <summary><span><strong>{time(candidate.window.startHour)}〜{time(candidate.window.endHour)}</strong><small>{candidate.availableCount}/{participantCount}人が参加可能</small></span><span>全体 #{candidate.rank}<ChevronRight size={16} /></span></summary>
-            <div><span>参加しづらい {candidate.difficultCount}人</span><span>参加できない {candidate.unavailableCount}人</span><span>評価スコア {candidate.score}</span></div>
-          </details>
-        ))}</div> : <div className="calendar-detail-empty"><strong>この日の候補はありません</strong><p>必要な連続時間を確保できる時間帯がありません。</p></div>}
-      </section>
-    </div>
-    <CandidateExternalActions
-  scheduleTitle={scheduleTitle}
-  candidate={candidate}
-/>
-  );
-}
+         <details key={`${candidate.window.date}-${candidate.window.startHour}`}>
+  <summary>
+    <span>
+      <strong>
+        {time(candidate.window.startHour)}〜
+        {time(candidate.window.endHour)}
+      </strong>
+
+      <small>
+        {candidate.availableCount}/{participantCount}人が参加可能
+      </small>
+    </span>
+
+    <span>
+      全体 #{candidate.rank}
+      <ChevronRight size={16} />
+    </span>
+  </summary>
+
+  <div>
+    <span>
+      参加しづらい {candidate.difficultCount}人
+    </span>
+
+    <span>
+      参加できない {candidate.unavailableCount}人
+    </span>
+
+    <span>
+      評価スコア {candidate.score}
+    </span>
+  </div>
+
+  <CandidateExternalActions
+    scheduleTitle={scheduleTitle}
+    candidate={candidate}
+  />
+</details>
