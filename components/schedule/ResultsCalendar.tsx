@@ -1,5 +1,5 @@
 "use client";
-
+import { CandidateExternalActions } from "@/components/schedule/CandidateExternalActions";
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -14,10 +14,12 @@ export function ResultsCalendar({
   dates,
   candidates,
   participantCount,
+  scheduleTitle,
 }: {
   dates: string[];
   candidates: RankedCandidate[];
   participantCount: number;
+  scheduleTitle: string;
 }) {
   const byDate = useMemo(() => {
     const groups = new Map<string, RankedCandidate[]>();
@@ -76,5 +78,9 @@ export function ResultsCalendar({
         ))}</div> : <div className="calendar-detail-empty"><strong>この日の候補はありません</strong><p>必要な連続時間を確保できる時間帯がありません。</p></div>}
       </section>
     </div>
+    <CandidateExternalActions
+  scheduleTitle={scheduleTitle}
+  candidate={candidate}
+/>
   );
 }
